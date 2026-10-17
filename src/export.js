@@ -4,6 +4,7 @@ import {
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { baselineOffset, displaySize, lineHeight, totalRotation } from './geometry.js';
+import { decodeSymbols } from './symbols.js';
 
 const FONT_MAP = {
   Helvetica: StandardFonts.Helvetica,
@@ -94,8 +95,12 @@ export async function buildPdf(sources, pages, opts = {}) {
   const uniFonts = {};
   const textFont = async (name, text) => {
     if (!opts.loadFont || !needsUnicode(text)) return { f: await font(name), clean: safeText };
-    uniFonts[name] ??= await out.embedFont(await opts.loadFont(name), { subset: true });
-    return { f: uniFonts[name], clean: (s) => s };
+    const f = (uniFonts[name] ??= await out.embedFont(await opts.loadFont(name), { subset: true }));
+    // Never let a missing glyph turn into an empty square: try the compatibility form
+    // (e.g. math italic 𝑥 -> x), and only then fall back to '?'.
+    const has = (s) => [...s].every((c) => f.embedder?.font?.hasGlyphForCodePoint?.(c.codePointAt(0)) ?? true);
+    const clean = (s) => [...s].map((c) => (has(c) ? c : has(c.normalize('NFKC')) ? c.normalize('NFKC') : '?')).join('');
+    return { f, clean };
   };
   const images = new Map();
   const image = async (src) => {
@@ -140,8 +145,10 @@ export async function buildPdf(sources, pages, opts = {}) {
         white(b);
         page.drawPage(embedded, { x: b.left, y: b.bottom, width: b.right - b.left, height: b.top - b.bottom });
       } else if (a.type === 'text') {
-        const { f, clean } = await textFont(a.font, a.text);
-        a.text.split('\n').forEach((line, li) => {
+        // Decode Symbol-font private-use codes that older versions extracted as-is.
+        const text = decodeSymbols(a.text, false);
+        const { f, clean } = await textFont(a.font, text);
+        text.split('\n').forEach((line, li) => {
           if (!line.trim()) return;
           const pt = map(a.x, a.y + (li * lineHeight(a) + baselineOffset(a)) * a.size);
           page.drawText(clean(line), { ...pt, size: a.size, font: f, color: hexToRgb(a.color), rotate });

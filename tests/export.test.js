@@ -77,3 +77,15 @@ test('embeds a Unicode font for text the standard fonts cannot encode, and draws
   assert.ok(out.length < 200_000, `output is ${out.length} bytes`);
   if (process.env.UNICODE_OUT) (await import('node:fs')).writeFileSync(process.env.UNICODE_OUT, out);
 });
+
+test('never draws missing glyphs as squares', async () => {
+  const { readFileSync } = await import('node:fs');
+  const loadFont = async () => readFileSync(new URL('../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans.ttf', import.meta.url));
+  // Word Symbol-font private-use codes (μ, λ), math italic x, and a character DejaVu lacks.
+  const text = { type: 'text', x: 72, y: 72, text: ' = 0.3,  = 5, \u{1D465} + 1, 中', size: 14, color: '#000000', font: 'Helvetica' };
+  const out = await buildPdf(new Map(), [
+    { srcId: null, srcIndex: 0, origRot: 0, rot: 0, view: [0, 0, 612, 792], annots: [text] },
+  ], { loadFont });
+  assert.equal((await PDFDocument.load(out)).getPageCount(), 1);
+  if (process.env.SQUARES_OUT) (await import('node:fs')).writeFileSync(process.env.SQUARES_OUT, out);
+});
