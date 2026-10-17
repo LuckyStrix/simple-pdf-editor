@@ -11,6 +11,10 @@ test('decodes plain letters drawn with a Symbol font', () => {
   assert.equal(decodeSymbols('mlpW', false), 'mlpW');
 });
 
+test('turns Word equation math italics into plain letters', () => {
+  assert.equal(decodeSymbols('(\u{1D706} = 2.166 \u{1D707}\u{1D45A}), R = \u{1D706}/Δ\u{1D706}', false), '(λ = 2.166 μm), R = λ/Δλ');
+});
+
 test('normalises look-alike code points', () => {
   assert.equal(decodeSymbols('∆ Ω µ', false), 'Δ Ω μ');
 });

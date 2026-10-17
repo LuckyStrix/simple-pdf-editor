@@ -32,6 +32,8 @@ export function decodeSymbols(str, isSymbolFont) {
     const code = ch.codePointAt(0);
     if (code >= 0xf020 && code <= 0xf0ff) out += SYMBOL_ENCODING[code - 0xf000] ?? String.fromCharCode(code - 0xf000);
     else if (isSymbolFont && code < 0x100) out += SYMBOL_ENCODING[code] ?? ch;
+    // Word equations use math italic letters (𝜆 U+1D706) that most fonts lack; use the plain letter.
+    else if (code >= 0x1d400 && code <= 0x1d7ff) out += ch.normalize('NFKC');
     else out += LOOKALIKES[ch] ?? ch;
   }
   return out;
