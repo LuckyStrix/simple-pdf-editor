@@ -108,9 +108,25 @@ export async function buildPdf(sources, pages, opts = {}) {
     page.setRotation(degrees(R));
     const map = makeMapper(p);
     const rotate = degrees(R);
+    // Display-space rectangle -> user-space box (rotation-independent).
+    const userBox = (x, y, w, h) => {
+      const c1 = map(x, y);
+      const c2 = map(x + w, y + h);
+      return { left: Math.min(c1.x, c2.x), bottom: Math.min(c1.y, c2.y), right: Math.max(c1.x, c2.x), top: Math.max(c1.y, c2.y) };
+    };
+    const white = (b) => page.drawRectangle({ x: b.left, y: b.bottom, width: b.right - b.left, height: b.top - b.bottom, color: rgb(1, 1, 1) });
+
+    const regions = p.annots.filter((a) => a.type === 'region');
+    for (const a of regions) white(userBox(a.sx, a.sy, a.sw, a.sh));
 
     for (const a of p.annots) {
-      if (a.type === 'text') {
+      if (a.type === 'region') {
+        // Vector copy of the original page content inside the source box.
+        const embedded = await out.embedPage(srcDocs.get(p.srcId).getPage(p.srcIndex), userBox(a.sx, a.sy, a.sw, a.sh));
+        const b = userBox(a.x, a.y, a.w, a.h);
+        white(b);
+        page.drawPage(embedded, { x: b.left, y: b.bottom, width: b.right - b.left, height: b.top - b.bottom });
+      } else if (a.type === 'text') {
         const f = await font(a.font);
         a.text.split('\n').forEach((line, li) => {
           if (!line) return;

@@ -1,7 +1,7 @@
 {
   "name": "simple-pdf-editor",
   "productName": "Simple PDF Editor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A simple, open-source PDF editor for Windows, Linux and the browser.",
   "license": "MIT",
   "author": "LuckyStrix",

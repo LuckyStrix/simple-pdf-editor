@@ -16,6 +16,7 @@ Built with [pdf.js](https://github.com/mozilla/pdf.js) for rendering and [pdf-li
 - Split every page into its own file
 
 **Editing**
+- **Move area**: box existing content and drag it elsewhere (e.g. shift questions down to make room for answers); saved as sharp vector content, not a screenshot
 - Add text (sans, serif or mono; any colour and size)
 - Freehand drawing
 - Highlight, rectangle/box, white-out and black-out
@@ -47,7 +48,7 @@ There is also a web version on GitHub Pages: <https://luckystrix.github.io/simpl
 | --- | --- |
 | Ctrl+O / Ctrl+S | Open / save |
 | Ctrl+Z / Ctrl+Y | Undo / redo |
-| V, T, D, H, R, W | Select, text, draw, highlight, box, white-out tools |
+| V, M, T, D, H, R, W | Select, move area, text, draw, highlight, box, white-out tools |
 | Delete | Delete the selected annotation |
 | Esc | Back to the select tool |
 | Double-click text | Edit it |
@@ -79,7 +80,7 @@ Pushing a tag such as `v1.0.1` makes GitHub Actions build Windows and Linux pack
 ## Limitations
 
 - **Black-out is visual only.** It covers content with a black box, but the text underneath is still in the file. Don't use it to redact sensitive information.
-- Existing text in the PDF can't be edited in place. Use white-out and then add new text on top.
+- Existing text can't be retyped in place. Use **Move area** to make room, or white-out plus new text to replace it.
 - Added text uses the standard PDF fonts, which cover Western European characters only. Other characters become `?`.
 - Password-protected PDFs need the password removed before you can open them.
 - Filled form fields are flattened when you save, so they're no longer editable.

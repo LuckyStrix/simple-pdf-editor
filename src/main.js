@@ -208,6 +208,13 @@ function renderAnnots(p) {
   const ov = pageEl(p)?.querySelector('.overlay');
   if (!ov) return;
   ov.querySelectorAll('.annot').forEach((n) => n.remove());
+  const z = state.zoom;
+  // Moved areas leave a white cover where they came from, beneath everything else.
+  for (const a of p.annots.filter((x) => x.type === 'region')) {
+    const cover = ov.appendChild(document.createElement('div'));
+    cover.className = 'annot region-cover';
+    Object.assign(cover.style, { left: `${a.sx * z}px`, top: `${a.sy * z}px`, width: `${a.sw * z}px`, height: `${a.sh * z}px` });
+  }
   for (const a of p.annots) ov.appendChild(annotEl(p, a));
 }
 
@@ -236,6 +243,19 @@ function annotEl(p, a) {
     const img = document.createElement('img');
     img.src = a.src;
     img.draggable = false;
+    el.appendChild(img);
+  }
+  if (a.type === 'region') {
+    // The preview was captured at rotation r0; turn it to match the page's current rotation.
+    const turn = (totalRotation(p) - a.r0 + 360) % 360;
+    const img = document.createElement('img');
+    img.src = a.src;
+    img.draggable = false;
+    Object.assign(img.style, {
+      position: 'absolute', left: '50%', top: '50%',
+      width: `${(turn % 180 ? a.h : a.w) * z}px`, height: `${(turn % 180 ? a.w : a.h) * z}px`,
+      transform: `translate(-50%, -50%) rotate(${turn}deg)`,
+    });
     el.appendChild(img);
   }
   if (a.type === 'ink') {
@@ -387,7 +407,7 @@ function onAnnotDown(e, p, a) {
       a.y = start.ay + dy;
     } else if (a.type === 'text') {
       a.size = Math.max(4, start.size + dy / (1.2 * lines));
-    } else if (a.type === 'image' && !ev.shiftKey) {
+    } else if ((a.type === 'image' && !ev.shiftKey) || a.type === 'region') {
       a.w = Math.max(8, start.aw + dx);
       a.h = (a.w * start.ah) / start.aw;
     } else {
@@ -431,6 +451,43 @@ function onOverlayDown(e, p) {
     p.annots.push(a);
     renderAnnots(p);
     editText(p, a, ov.querySelector(`[data-id="${a.id}"]`), before);
+    return;
+  }
+
+  if (state.tool === 'region') {
+    if (!p.srcId) return toast('Move area works on original PDF content, not blank pages');
+    const box = ov.appendChild(document.createElement('div'));
+    box.className = 'annot region-pick';
+    let q = s;
+    const place = () => Object.assign(box.style, {
+      left: `${Math.min(s.x, q.x) * z}px`, top: `${Math.min(s.y, q.y) * z}px`,
+      width: `${Math.abs(q.x - s.x) * z}px`, height: `${Math.abs(q.y - s.y) * z}px`,
+    });
+    drag((ev) => {
+      q = pt(ev);
+      place();
+    }, () => {
+      box.remove();
+      const x = Math.min(s.x, q.x);
+      const y = Math.min(s.y, q.y);
+      const w = Math.abs(q.x - s.x);
+      const h = Math.abs(q.y - s.y);
+      if (w < 4 || h < 4) return;
+      // Preview image cropped from the rendered page; the saved PDF uses the vector original.
+      const canvas = pageEl(p).querySelector('canvas');
+      const k = canvas.width / (displaySize(p).w * z);
+      const crop = document.createElement('canvas');
+      crop.width = Math.max(1, Math.round(w * z * k));
+      crop.height = Math.max(1, Math.round(h * z * k));
+      crop.getContext('2d').drawImage(canvas, x * z * k, y * z * k, crop.width, crop.height, 0, 0, crop.width, crop.height);
+      checkpoint();
+      const a = { id: uid(), type: 'region', sx: x, sy: y, sw: w, sh: h, x, y, w, h, r0: totalRotation(p), src: crop.toDataURL('image/png') };
+      p.annots.push(a);
+      setTool('select');
+      setSelected(p, a);
+      renderAnnots(p);
+      toast('Now drag the selected area where you want it');
+    });
     return;
   }
 
@@ -602,6 +659,9 @@ function rotateCW(p) {
       a.pts = abs.map(([x, y]) => [x - a.x, y - a.y]);
     } else if (a.type === 'text') {
       [a.x, a.y] = [H - a.y - a.size, a.x];
+    } else if (a.type === 'region') {
+      [a.sx, a.sy, a.sw, a.sh] = [H - (a.sy + a.sh), a.sx, a.sh, a.sw];
+      [a.x, a.y, a.w, a.h] = [H - (a.y + a.h), a.x, a.h, a.w];
     } else if (a.type === 'image') {
       const cx = a.x + a.w / 2;
       const cy = a.y + a.h / 2;
@@ -962,7 +1022,7 @@ function wire() {
     else if (mod && key === '-') { e.preventDefault(); setZoom(state.zoom / 1.2); }
     else if (key === 'delete' || key === 'backspace') { e.preventDefault(); deleteSelected(); }
     else if (!mod) {
-      const tool = { v: 'select', t: 'text', d: 'draw', h: 'highlight', r: 'rect', w: 'whiteout' }[key];
+      const tool = { v: 'select', m: 'region', t: 'text', d: 'draw', h: 'highlight', r: 'rect', w: 'whiteout' }[key];
       if (tool) setTool(tool);
     }
   });

@@ -47,3 +47,19 @@ test('builds a PDF with reordering, rotation, blank pages, annotations and optio
   // Filled form is flattened into page content.
   assert.equal(doc.getForm().getFields().length, 0);
 });
+
+test('moves an area of original content as a vector copy', async () => {
+  const d = await PDFDocument.create();
+  const font = await d.embedFont('Helvetica');
+  const page = d.addPage([612, 792]);
+  page.drawText('Question 1', { x: 72, y: 700, size: 24, font });
+  page.drawText('Question 2', { x: 72, y: 650, size: 24, font });
+  const bytes = await d.save();
+  const region = { type: 'region', sx: 60, sy: 120, sw: 300, sh: 40, x: 60, y: 320, w: 300, h: 40, r0: 0, src: PNG };
+  const out = await buildPdf(new Map([['s', { bytes, formValues: {} }]]), [
+    { srcId: 's', srcIndex: 0, origRot: 0, rot: 0, view: [0, 0, 612, 792], annots: [region] },
+  ]);
+  const doc = await PDFDocument.load(out);
+  assert.equal(doc.getPageCount(), 1);
+  if (process.env.REGION_OUT) (await import('node:fs')).writeFileSync(process.env.REGION_OUT, out);
+});

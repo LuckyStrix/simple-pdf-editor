@@ -162,6 +162,10 @@ body.tool-select .annot { cursor: move; }
 .annot.text.editing { cursor: text; outline: 1.5px solid var(--accent); pointer-events: auto; }
 .annot.text:empty::before { content: "Type here"; opacity: 0.4; }
 .annot.highlight { mix-blend-mode: multiply; opacity: 0.4; }
+.annot.region-cover { background: #fff; pointer-events: none; }
+.annot.region-pick { outline: 1.5px dashed var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.annot.region { background: #fff; }
+.annot.region:not(.selected) { outline: 1px dotted color-mix(in srgb, var(--accent) 45%, transparent); }
 .annot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .annot img { width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; }
 .handle {
