@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folio PDF</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body class="tool-select">
+  <header class="toolbar">
+    <div class="group">
+      <strong class="brand">Folio</strong>
+      <button id="btn-open" title="Open PDF (Ctrl+O)">Open</button>
+      <button id="btn-add" title="Append another PDF (merge)">Add PDF</button>
+      <button id="btn-save" class="primary" title="Save / download (Ctrl+S)">Save</button>
+    </div>
+    <div class="group tools">
+      <button data-tool="select" class="active" title="Select / move (V)">Select</button>
+      <button data-tool="text" title="Add text (T)">Text</button>
+      <button data-tool="draw" title="Freehand draw (D)">Draw</button>
+      <button data-tool="highlight" title="Highlight (H)">Highlight</button>
+      <button data-tool="rect" title="Rectangle (R)">Box</button>
+      <button data-tool="whiteout" title="White-out (W)">White-out</button>
+      <button data-tool="redact" title="Black-out box (visual only)">Black-out</button>
+      <button id="btn-image" title="Insert image">Image</button>
+      <button id="btn-sign" title="Draw a signature">Sign</button>
+    </div>
+    <div class="group">
+      <input type="color" id="color" value="#d0021b" title="Colour" />
+      <select id="font" title="Font">
+        <option value="Helvetica">Sans</option>
+        <option value="Times">Serif</option>
+        <option value="Courier">Mono</option>
+      </select>
+      <label class="field" title="Text size">Aa <input type="number" id="size" value="16" min="4" max="200" /></label>
+      <label class="field" title="Line width">✎ <input type="number" id="stroke" value="2" min="0.5" max="40" step="0.5" /></label>
+      <button id="btn-delete" title="Delete selected annotation (Del)">Delete</button>
+    </div>
+    <div class="group">
+      <button id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
+      <button id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+      <button id="btn-forms" title="Fill form fields">Forms</button>
+      <button id="btn-zoom-out" title="Zoom out">−</button>
+      <span id="zoom-label">125%</span>
+      <button id="btn-zoom-in" title="Zoom in">+</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="page-actions">
+        <button id="pg-rotl" title="Rotate left">⟲</button>
+        <button id="pg-rotr" title="Rotate right">⟳</button>
+        <button id="pg-dup" title="Duplicate">Dup</button>
+        <button id="pg-blank" title="Insert blank page after">Blank</button>
+        <button id="pg-del" title="Delete page(s)">Del</button>
+        <button id="pg-extract" title="Save selected pages as a new PDF">Extract</button>
+        <button id="pg-split" title="Save every page as its own PDF">Split</button>
+      </div>
+      <p class="hint">Click to select pages (Ctrl/Shift for many). Drag to reorder.</p>
+      <div id="thumbs"></div>
+    </aside>
+    <main id="viewer">
+      <div id="empty" class="empty">
+        <h1>Folio PDF</h1>
+        <p>Open a PDF or drop one anywhere in this window.</p>
+        <button id="btn-open-2" class="primary">Open PDF</button>
+      </div>
+      <div id="pages"></div>
+    </main>
+  </div>
+
+  <div id="status"></div>
+
+  <input type="file" id="file-open" accept="application/pdf,.pdf" hidden />
+  <input type="file" id="file-add" accept="application/pdf,.pdf" multiple hidden />
+  <input type="file" id="file-image" accept="image/*" hidden />
+
+  <dialog id="dlg-sign">
+    <h2>Draw your signature</h2>
+    <canvas id="sign-pad" width="600" height="220"></canvas>
+    <div class="row">
+      <button id="sign-clear">Clear</button>
+      <span class="spacer"></span>
+      <button id="sign-cancel">Cancel</button>
+      <button id="sign-ok" class="primary">Place signature</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-forms">
+    <h2>Form fields</h2>
+    <p class="hint">Values are written (and flattened) into the PDF when you save.</p>
+    <div id="form-list"></div>
+    <div class="row"><span class="spacer"></span><button id="forms-close" class="primary">Done</button></div>
+  </dialog>
+
+  <dialog id="dlg-save">
+    <h2>Save PDF</h2>
+    <label>File name <input id="save-name" /></label>
+    <label>Title <input id="save-title" /></label>
+    <label>Author <input id="save-author" /></label>
+    <label><input type="checkbox" id="save-numbers" /> Add page numbers</label>
+    <label>Watermark text <input id="save-watermark" placeholder="(none)" /></label>
+    <div class="row">
+      <span class="spacer"></span>
+      <button id="save-cancel">Cancel</button>
+      <button id="save-ok" class="primary">Save</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "name": "folio-pdf",
+  "productName": "Folio PDF",
+  "version": "1.0.0",
+  "description": "A simple, open-source PDF editor for Windows, Linux and the browser.",
+  "license": "MIT",
+  "author": "LuckyStrix",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "homepage": "https://github.com/LuckyStrix/folio-pdf",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "app": "vite build && electron .",
+    "dist:win": "vite build && electron-builder --win",
+    "dist:linux": "vite build && electron-builder --linux",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "4.10.38"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "vite": "6.0.7"
+  },
+  "build": {
+    "appId": "com.luckystrix.foliopdf",
+    "productName": "Folio PDF",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "pdf",
+        "name": "PDF Document",
+        "mimeType": "application/pdf"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "maintainer": "LuckyStrix"
+    },
+    "publish": null
+  }
+}
