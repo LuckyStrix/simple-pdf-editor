@@ -40,6 +40,7 @@
     <div class="group">
       <button id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
       <button id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+      <button id="btn-edittext" title="Turn the PDF's text into an editable text box">Edit text…</button>
       <button id="btn-forms" title="Fill form fields">Forms</button>
       <button id="btn-zoom-out" title="Zoom out">−</button>
       <span id="zoom-label">125%</span>
@@ -93,6 +94,20 @@
     <p class="hint">Values are written (and flattened) into the PDF when you save.</p>
     <div id="form-list"></div>
     <div class="row"><span class="spacer"></span><button id="forms-close" class="primary">Done</button></div>
+  </dialog>
+
+  <dialog id="dlg-edittext">
+    <h2>Make text editable</h2>
+    <p>Each page's text becomes one editable text box. Pictures, lines and tables stay where they are.
+      Press Enter inside the box to make room and everything below moves down.</p>
+    <p class="hint">Mixed fonts and sizes become one font per page. Scanned pages have no text to edit.
+      Undo (Ctrl+Z) puts the original back.</p>
+    <div class="row">
+      <span class="spacer"></span>
+      <button id="edittext-cancel">Cancel</button>
+      <button id="edittext-page">Current / selected pages</button>
+      <button id="edittext-all" class="primary">All pages</button>
+    </div>
   </dialog>
 
   <dialog id="dlg-save">

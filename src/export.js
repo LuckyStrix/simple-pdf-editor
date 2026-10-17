@@ -2,7 +2,8 @@ import {
   PDFDocument, StandardFonts, rgb, degrees, BlendMode, LineCapStyle,
   PDFTextField, PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFOptionList,
 } from 'pdf-lib';
-import { displaySize, totalRotation } from './geometry.js';
+import fontkit from '@pdf-lib/fontkit';
+import { baselineOffset, displaySize, lineHeight, totalRotation } from './geometry.js';
 
 const FONT_MAP = {
   Helvetica: StandardFonts.Helvetica,
@@ -15,7 +16,8 @@ export function hexToRgb(hex) {
   return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 }
 
-// Standard 14 fonts only cover WinAnsi; replace anything else so drawText never throws.
+// Standard 14 fonts only cover WinAnsi; text with anything else needs an embedded Unicode font.
+const needsUnicode = (s) => /[^\x20-\x7E\xA0-\xFF\n]/.test(s);
 const safeText = (s) => s.replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
 
 /** Map a point in display space (points, top-left origin, page as shown) to PDF user space. */
@@ -72,10 +74,12 @@ async function dataUrlBytes(url) {
  * Build a PDF from a list of page entries.
  * @param sources Map of source id -> { bytes, formValues }
  * @param pages   page entries (see main.js)
- * @param opts    { title, author, pageNumbers, watermark }
+ * @param opts    { title, author, pageNumbers, watermark,
+ *                  loadFont(name) -> bytes of a Unicode TTF for 'Helvetica' | 'Times' | 'Courier' }
  */
 export async function buildPdf(sources, pages, opts = {}) {
   const out = await PDFDocument.create();
+  out.registerFontkit(fontkit);
   const srcDocs = new Map();
   for (const p of pages) {
     if (!p.srcId || srcDocs.has(p.srcId)) continue;
@@ -87,6 +91,12 @@ export async function buildPdf(sources, pages, opts = {}) {
 
   const fonts = {};
   const font = async (name) => (fonts[name] ??= await out.embedFont(FONT_MAP[name] ?? StandardFonts.Helvetica));
+  const uniFonts = {};
+  const textFont = async (name, text) => {
+    if (!opts.loadFont || !needsUnicode(text)) return { f: await font(name), clean: safeText };
+    uniFonts[name] ??= await out.embedFont(await opts.loadFont(name), { subset: true });
+    return { f: uniFonts[name], clean: (s) => s };
+  };
   const images = new Map();
   const image = async (src) => {
     if (!images.has(src)) {
@@ -116,8 +126,11 @@ export async function buildPdf(sources, pages, opts = {}) {
     };
     const white = (b) => page.drawRectangle({ x: b.left, y: b.bottom, width: b.right - b.left, height: b.top - b.bottom, color: rgb(1, 1, 1) });
 
-    const regions = p.annots.filter((a) => a.type === 'region');
-    for (const a of regions) white(userBox(a.sx, a.sy, a.sw, a.sh));
+    // White covers first: text lifted into an editable box, and spots that moved areas came from.
+    for (const a of p.annots) {
+      for (const [x, y, w, h] of a.covers ?? []) white(userBox(x, y, w, h));
+      if (a.type === 'region') white(userBox(a.sx, a.sy, a.sw, a.sh));
+    }
 
     for (const a of p.annots) {
       if (a.type === 'region') {
@@ -127,11 +140,11 @@ export async function buildPdf(sources, pages, opts = {}) {
         white(b);
         page.drawPage(embedded, { x: b.left, y: b.bottom, width: b.right - b.left, height: b.top - b.bottom });
       } else if (a.type === 'text') {
-        const f = await font(a.font);
+        const { f, clean } = await textFont(a.font, a.text);
         a.text.split('\n').forEach((line, li) => {
-          if (!line) return;
-          const pt = map(a.x, a.y + (li * 1.2 + 0.95) * a.size);
-          page.drawText(safeText(line), { ...pt, size: a.size, font: f, color: hexToRgb(a.color), rotate });
+          if (!line.trim()) return;
+          const pt = map(a.x, a.y + (li * lineHeight(a) + baselineOffset(a)) * a.size);
+          page.drawText(clean(line), { ...pt, size: a.size, font: f, color: hexToRgb(a.color), rotate });
         });
       } else if (a.type === 'ink') {
         const sx = a.w / a.vw, sy = a.h / a.vh;

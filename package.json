@@ -1,7 +1,7 @@
 {
   "name": "simple-pdf-editor",
   "productName": "Simple PDF Editor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A simple, open-source PDF editor for Windows, Linux and the browser.",
   "license": "MIT",
   "author": "LuckyStrix",
@@ -18,6 +18,8 @@
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
+    "dejavu-fonts-ttf": "2.37.3",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "4.10.38"
   },

@@ -63,3 +63,17 @@ test('moves an area of original content as a vector copy', async () => {
   assert.equal(doc.getPageCount(), 1);
   if (process.env.REGION_OUT) (await import('node:fs')).writeFileSync(process.env.REGION_OUT, out);
 });
+
+test('embeds a Unicode font for text the standard fonts cannot encode, and draws covers', async () => {
+  const { readFileSync } = await import('node:fs');
+  const loadFont = async () => readFileSync(new URL('../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans.ttf', import.meta.url));
+  const text = { type: 'text', x: 72, y: 72, text: 'Solve x² + y² ≤ 1 for θ ∈ ℝ\n\nAnswer: θ = π/4', size: 14, color: '#000000', font: 'Helvetica', covers: [[70, 70, 300, 20]] };
+  const out = await buildPdf(new Map(), [
+    { srcId: null, srcIndex: 0, origRot: 0, rot: 0, view: [0, 0, 612, 792], annots: [text] },
+  ], { loadFont });
+  const doc = await PDFDocument.load(out);
+  assert.equal(doc.getPageCount(), 1);
+  // Subset embedding keeps the output small.
+  assert.ok(out.length < 200_000, `output is ${out.length} bytes`);
+  if (process.env.UNICODE_OUT) (await import('node:fs')).writeFileSync(process.env.UNICODE_OUT, out);
+});

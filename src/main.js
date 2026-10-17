@@ -2,9 +2,26 @@ import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { PDFDocument } from 'pdf-lib';
 import { buildPdf, listFields } from './export.js';
-import { displaySize, totalRotation } from './geometry.js';
+import { baselineOffset, displaySize, lineHeight, totalRotation } from './geometry.js';
+import sansUrl from 'dejavu-fonts-ttf/ttf/DejaVuSans.ttf?url';
+import serifUrl from 'dejavu-fonts-ttf/ttf/DejaVuSerif.ttf?url';
+import monoUrl from 'dejavu-fonts-ttf/ttf/DejaVuSansMono.ttf?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+
+// Unicode fonts, embedded only when added text has characters the standard PDF fonts lack.
+const UNICODE_FONTS = { Helvetica: sansUrl, Times: serifUrl, Courier: monoUrl };
+function loadFont(name) {
+  // XHR rather than fetch: it also works from file:// in the desktop app.
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', UNICODE_FONTS[name] ?? sansUrl);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () => (xhr.response ? resolve(new Uint8Array(xhr.response)) : reject(new Error('Font failed to load')));
+    xhr.onerror = () => reject(new Error('Font failed to load'));
+    xhr.send();
+  });
+}
 
 const $ = (s) => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -209,11 +226,15 @@ function renderAnnots(p) {
   if (!ov) return;
   ov.querySelectorAll('.annot').forEach((n) => n.remove());
   const z = state.zoom;
-  // Moved areas leave a white cover where they came from, beneath everything else.
-  for (const a of p.annots.filter((x) => x.type === 'region')) {
-    const cover = ov.appendChild(document.createElement('div'));
-    cover.className = 'annot region-cover';
-    Object.assign(cover.style, { left: `${a.sx * z}px`, top: `${a.sy * z}px`, width: `${a.sw * z}px`, height: `${a.sh * z}px` });
+  // White covers (where moved areas came from, or text lifted into a box) sit beneath everything else.
+  for (const a of p.annots) {
+    const rects = [...(a.covers ?? [])];
+    if (a.type === 'region') rects.push([a.sx, a.sy, a.sw, a.sh]);
+    for (const [x, y, w, h] of rects) {
+      const cover = ov.appendChild(document.createElement('div'));
+      cover.className = 'annot region-cover';
+      Object.assign(cover.style, { left: `${x * z}px`, top: `${y * z}px`, width: `${w * z}px`, height: `${h * z}px` });
+    }
   }
   for (const a of p.annots) ov.appendChild(annotEl(p, a));
 }
@@ -230,6 +251,7 @@ function annotEl(p, a) {
     el.style.fontSize = `${a.size * z}px`;
     el.style.color = a.color;
     el.style.fontFamily = CSS_FONTS[a.font];
+    el.style.lineHeight = lineHeight(a);
   } else {
     el.style.width = `${a.w * z}px`;
     el.style.height = `${a.h * z}px`;
@@ -406,7 +428,7 @@ function onAnnotDown(e, p, a) {
       a.x = start.ax + dx;
       a.y = start.ay + dy;
     } else if (a.type === 'text') {
-      a.size = Math.max(4, start.size + dy / (1.2 * lines));
+      a.size = Math.max(4, start.size + dy / (lineHeight(a) * lines));
     } else if ((a.type === 'image' && !ev.shiftKey) || a.type === 'region') {
       a.w = Math.max(8, start.aw + dx);
       a.h = (a.w * start.ah) / start.aw;
@@ -646,6 +668,7 @@ function movePages(dragId, beforeId) {
 function rotateCW(p) {
   const { h: H } = displaySize(p);
   for (const a of p.annots) {
+    if (a.covers) a.covers = a.covers.map(([x, y, w, h]) => [H - (y + h), x, h, w]);
     if (a.type === 'ink') {
       const sx = a.w / a.vw;
       const sy = a.h / a.vh;
@@ -718,6 +741,104 @@ function insertBlank() {
   pageEl(blank)?.scrollIntoView({ block: 'start' });
 }
 
+// ---------- make text editable ----------
+
+const SPACE_EM = { Helvetica: 0.278, Times: 0.25, Courier: 0.6 };
+
+/** Replace a page's text with one editable text box; returns false if the page has no text. */
+async function liftText(p) {
+  const src = state.sources.get(p.srcId);
+  if (!src) return false;
+  const pg = await src.pdf.getPage(p.srcIndex + 1);
+  const vp = pg.getViewport({ scale: 1, rotation: totalRotation(p) });
+  const content = await pg.getTextContent();
+
+  const items = [];
+  for (const it of content.items) {
+    if (!it.str?.trim()) continue;
+    const t = pdfjsLib.Util.transform(vp.transform, it.transform);
+    const size = Math.hypot(t[2], t[3]);
+    // Only upright text; rotated labels stay as they are.
+    if (size < 1 || Math.abs(t[1]) > size * 0.05 || Math.abs(t[2]) > size * 0.05) continue;
+    items.push({ str: it.str, x: t[4], base: t[5], w: it.width, size, family: content.styles[it.fontName]?.fontFamily ?? '' });
+  }
+  if (!items.length) return false;
+
+  // Group into lines by baseline.
+  items.sort((a, b) => a.base - b.base || a.x - b.x);
+  const lines = [];
+  for (const it of items) {
+    const line = lines.at(-1);
+    if (line && Math.abs(it.base - line.base) < Math.min(it.size, line.size) * 0.5) line.items.push(it);
+    else lines.push({ base: it.base, size: it.size, items: [it] });
+  }
+
+  const sizes = items.map((it) => it.size).sort((a, b) => a - b);
+  const size = Math.round(sizes[sizes.length >> 1] * 2) / 2;
+  const families = items.map((it) => it.family.toLowerCase());
+  const count = (re) => families.filter((f) => re.test(f)).length;
+  const font = count(/mono/) > families.length / 2 ? 'Courier'
+    : count(/(^|[^-])serif/) > count(/sans/) ? 'Times' : 'Helvetica';
+  const space = size * SPACE_EM[font];
+
+  // Line spacing from the most common gap between consecutive lines.
+  const gaps = lines.slice(1).map((l, i) => l.base - lines[i].base).sort((a, b) => a - b);
+  const lh = gaps.length ? Math.min(2.5, Math.max(1, Math.round((gaps[gaps.length >> 1] / size) * 20) / 20)) : 1.2;
+
+  const covers = [];
+  const text = [];
+  let left0 = Infinity;
+  for (const line of lines) {
+    line.items.sort((a, b) => a.x - b.x);
+    line.left = line.items[0].x;
+    left0 = Math.min(left0, line.left);
+  }
+  lines.forEach((line, i) => {
+    if (i) {
+      const gap = Math.round((line.base - lines[i - 1].base) / (size * lh)) - 1;
+      for (let k = 0; k < Math.min(6, Math.max(0, gap)); k++) text.push('');
+    }
+    let s = ' '.repeat(Math.min(60, Math.max(0, Math.round((line.left - left0) / space))));
+    let right = line.left;
+    let maxSize = 0;
+    for (const it of line.items) {
+      const gap = it.x - right;
+      if (right > line.left && gap > it.size * 0.15 && !s.endsWith(' ') && !it.str.startsWith(' ')) {
+        s += ' '.repeat(Math.min(30, Math.max(1, Math.round(gap / space))));
+      }
+      s += it.str;
+      right = Math.max(right, it.x + it.w);
+      maxSize = Math.max(maxSize, it.size);
+    }
+    text.push(s.trimEnd());
+    covers.push([line.left - 1, line.base - maxSize * 0.95, right - line.left + 2, maxSize * 1.25]);
+  });
+
+  p.annots.push({
+    id: uid(), type: 'text', x: left0, y: lines[0].base - size * baselineOffset({ lh }), lh,
+    text: text.join('\n'), size, color: '#000000', font, covers,
+  });
+  return true;
+}
+
+async function makeTextEditable(scope) {
+  $('#dlg-edittext').close();
+  const list = scope === 'all' ? state.pages : targetPages();
+  if (!list.length) return toast('Open a PDF first');
+  checkpoint();
+  let done = 0;
+  const empty = [];
+  for (const p of list) {
+    if (await liftText(p)) done++;
+    else empty.push(state.pages.indexOf(p) + 1);
+    renderAnnots(p);
+  }
+  if (!done) state.undo.pop();
+  toast(done
+    ? `Made ${done} page(s) editable — double-click the text to edit${empty.length ? `. No text found on page ${empty.join(', ')}` : ''}`
+    : 'No text found — this looks like a scanned PDF, which needs OCR first', 6000);
+}
+
 // ---------- saving ----------
 
 const baseName = () => state.fileName.replace(/\.pdf$/i, '');
@@ -748,7 +869,7 @@ async function exportPages(pages, opts) {
   document.activeElement?.blur(); // commit any text being edited
   toast('Building PDF…', 60000);
   try {
-    return await buildPdf(state.sources, pages, opts);
+    return await buildPdf(state.sources, pages, { ...opts, loadFont });
   } catch (e) {
     console.error(e);
     toast(`Export failed: ${e.message}`, 6000);
@@ -945,6 +1066,10 @@ function wire() {
   $('#btn-undo').onclick = undo;
   $('#btn-redo').onclick = redo;
   $('#btn-forms').onclick = openForms;
+  $('#btn-edittext').onclick = () => (state.pages.length ? $('#dlg-edittext').showModal() : toast('Open a PDF first'));
+  $('#edittext-page').onclick = () => makeTextEditable('page');
+  $('#edittext-all').onclick = () => makeTextEditable('all');
+  $('#edittext-cancel').onclick = () => $('#dlg-edittext').close();
   $('#forms-close').onclick = () => $('#dlg-forms').close();
   $('#btn-zoom-in').onclick = () => setZoom(state.zoom * 1.2);
   $('#btn-zoom-out').onclick = () => setZoom(state.zoom / 1.2);

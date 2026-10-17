@@ -16,6 +16,7 @@ Built with [pdf.js](https://github.com/mozilla/pdf.js) for rendering and [pdf-li
 - Split every page into its own file
 
 **Editing**
+- **Edit text…**: turns a page's existing text into one editable text box (pictures, lines and tables stay put). Press Enter to make room and everything below moves down
 - **Move area**: box existing content and drag it elsewhere (e.g. shift questions down to make room for answers); saved as sharp vector content, not a screenshot
 - Add text (sans, serif or mono; any colour and size)
 - Freehand drawing
@@ -80,11 +81,11 @@ Pushing a tag such as `v1.0.1` makes GitHub Actions build Windows and Linux pack
 ## Limitations
 
 - **Black-out is visual only.** It covers content with a black box, but the text underneath is still in the file. Don't use it to redact sensitive information.
-- Existing text can't be retyped in place. Use **Move area** to make room, or white-out plus new text to replace it.
-- Added text uses the standard PDF fonts, which cover Western European characters only. Other characters become `?`.
+- Text is rewritten as a new text box rather than edited inside the original PDF objects, so original fonts and styling (bold, italics) aren't kept.
+- **Edit text…** uses one font and size per page, so headings come out the same size as body text. Scanned PDFs have no text layer and need OCR first.
 - Password-protected PDFs need the password removed before you can open them.
 - Filled form fields are flattened when you save, so they're no longer editable.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Bundles the [DejaVu fonts](https://dejavu-fonts.github.io/) (free license) for symbols and non-Latin text.
