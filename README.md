@@ -19,6 +19,7 @@ Built with [pdf.js](https://github.com/mozilla/pdf.js) for rendering and [pdf-li
 - **Edit text…**: turns a page's existing text into one editable text box (pictures, lines and tables stay put). Press Enter to make room and everything below moves down
 - **Move area**: box existing content and drag it elsewhere (e.g. shift questions down to make room for answers); saved as sharp vector content, not a screenshot
 - Add text (sans, serif or mono; any colour and size)
+- Greek letters and math symbols: the **Ω μ** picker, or type LaTeX names like `mu`, `lambda`, `le`, `pm` followed by a space. Symbols from older "Symbol"-font PDFs (common in Word exports) are decoded correctly by **Edit text…**
 - Freehand drawing
 - Highlight, rectangle/box, white-out and black-out
 - Insert images (PNG, JPEG, WebP, GIF, …)
@@ -52,7 +53,8 @@ There is also a web version on GitHub Pages: <https://luckystrix.github.io/simpl
 | V, M, T, D, H, R, W | Select, move area, text, draw, highlight, box, white-out tools |
 | Delete | Delete the selected annotation |
 | Esc | Back to the select tool |
-| Double-click text | Edit it |
+| Double-click text | Edit it (cursor goes where you click) |
+| `mu` + space | μ (any LaTeX Greek/math name works) |
 
 ## Development
 

@@ -3,6 +3,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { PDFDocument } from 'pdf-lib';
 import { buildPdf, listFields } from './export.js';
 import { baselineOffset, displaySize, lineHeight, totalRotation } from './geometry.js';
+import { decodeSymbols, LATEX, PALETTE } from './symbols.js';
 import sansUrl from 'dejavu-fonts-ttf/ttf/DejaVuSans.ttf?url';
 import serifUrl from 'dejavu-fonts-ttf/ttf/DejaVuSerif.ttf?url';
 import monoUrl from 'dejavu-fonts-ttf/ttf/DejaVuSansMono.ttf?url';
@@ -295,7 +296,7 @@ function annotEl(p, a) {
     el.appendChild(handle);
   }
   el.addEventListener('pointerdown', (e) => onAnnotDown(e, p, a));
-  if (a.type === 'text') el.addEventListener('dblclick', () => editText(p, a, el, snapshot()));
+  if (a.type === 'text') el.addEventListener('dblclick', (e) => editText(p, a, el, snapshot(), { x: e.clientX, y: e.clientY }));
   return el;
 }
 
@@ -380,18 +381,26 @@ function deleteSelected() {
   renderAnnots(s.p);
 }
 
-function editText(p, a, el, before) {
+/** Edit a text annotation in place; `at` is the client point to put the cursor (default: end). */
+function editText(p, a, el, before, at) {
   el.classList.add('editing');
   el.contentEditable = 'plaintext-only';
   el.querySelector('.handle')?.remove();
+  state.editingEl = el;
   setTimeout(() => {
     el.focus();
-    const range = document.createRange();
-    range.selectNodeContents(el);
+    let range = at && document.caretRangeFromPoint?.(at.x, at.y);
+    if (!range || !el.contains(range.startContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+    }
     getSelection().removeAllRanges();
     getSelection().addRange(range);
   });
+  el.addEventListener('input', () => expandLatex());
   el.addEventListener('blur', () => {
+    if (state.editingEl === el) state.editingEl = null;
     const text = el.innerText.replace(/\n$/, '');
     if (!text.trim()) {
       p.annots = p.annots.filter((x) => x !== a);
@@ -741,6 +750,56 @@ function insertBlank() {
   pageEl(blank)?.scrollIntoView({ block: 'start' });
 }
 
+// ---------- symbols ----------
+
+/** Turn a just-typed LaTeX name such as "\mu " into its symbol. */
+function expandLatex() {
+  const sel = getSelection();
+  const node = sel.anchorNode;
+  if (!sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE) return;
+  const m = /\\([A-Za-z]+)([\s.,;:)\]}^_\/=+-])$/.exec(node.data.slice(0, sel.anchorOffset));
+  if (!m || !LATEX[m[1]]) return;
+  // Edit the text node directly: browsers ignore execCommand issued from inside an input event.
+  const replacement = LATEX[m[1]] + m[2];
+  const start = sel.anchorOffset - m[0].length;
+  node.replaceData(start, m[0].length, replacement);
+  sel.collapse(node, start + replacement.length);
+}
+
+function setupSymbolPicker() {
+  const pop = $('#symbols');
+  for (const [title, chars] of PALETTE) {
+    const h = pop.appendChild(document.createElement('h3'));
+    h.textContent = title;
+    const row = pop.appendChild(document.createElement('div'));
+    row.className = 'sym-row';
+    for (const ch of chars) {
+      const b = row.appendChild(document.createElement('button'));
+      b.textContent = ch;
+      b.dataset.ch = ch;
+    }
+  }
+  pop.insertAdjacentHTML('beforeend', '<p class="hint">Or type a LaTeX name and a space: \\mu → μ, \\lambda → λ, \\le → ≤</p>');
+  // Keep focus in the text box while using the picker.
+  pop.addEventListener('mousedown', (e) => e.preventDefault());
+  $('#btn-symbols').addEventListener('mousedown', (e) => e.preventDefault());
+  pop.addEventListener('click', (e) => {
+    const ch = e.target.dataset?.ch;
+    if (!ch) return;
+    if (!state.editingEl) return toast('Click into a text box first (double-click to edit, or use the Text tool)');
+    document.execCommand('insertText', false, ch);
+  });
+  $('#btn-symbols').onclick = () => {
+    pop.hidden = !pop.hidden;
+    const r = $('#btn-symbols').getBoundingClientRect();
+    pop.style.top = `${r.bottom + 6}px`;
+    pop.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8))}px`;
+  };
+  window.addEventListener('pointerdown', (e) => {
+    if (!pop.hidden && !pop.contains(e.target) && e.target !== $('#btn-symbols')) pop.hidden = true;
+  });
+}
+
 // ---------- make text editable ----------
 
 const SPACE_EM = { Helvetica: 0.278, Times: 0.25, Courier: 0.6 };
@@ -752,6 +811,14 @@ async function liftText(p) {
   const pg = await src.pdf.getPage(p.srcIndex + 1);
   const vp = pg.getViewport({ scale: 1, rotation: totalRotation(p) });
   const content = await pg.getTextContent();
+  // Fonts named "Symbol" store Greek as plain letters ("m" = μ); find them so the text can be decoded.
+  const symbolFonts = new Set();
+  try {
+    await pg.getOperatorList();
+    for (const id of Object.keys(content.styles)) {
+      if (pg.commonObjs.has(id) && /symbol/i.test(pg.commonObjs.get(id)?.name ?? '')) symbolFonts.add(id);
+    }
+  } catch { /* fall back to the text as extracted */ }
 
   const items = [];
   for (const it of content.items) {
@@ -760,7 +827,7 @@ async function liftText(p) {
     const size = Math.hypot(t[2], t[3]);
     // Only upright text; rotated labels stay as they are.
     if (size < 1 || Math.abs(t[1]) > size * 0.05 || Math.abs(t[2]) > size * 0.05) continue;
-    items.push({ str: it.str, x: t[4], base: t[5], w: it.width, size, family: content.styles[it.fontName]?.fontFamily ?? '' });
+    items.push({ str: decodeSymbols(it.str, symbolFonts.has(it.fontName)), x: t[4], base: t[5], w: it.width, size, family: content.styles[it.fontName]?.fontFamily ?? '' });
   }
   if (!items.length) return false;
 
@@ -1153,6 +1220,7 @@ function wire() {
   });
 
   setupSignaturePad();
+  setupSymbolPicker();
 }
 
 wire();

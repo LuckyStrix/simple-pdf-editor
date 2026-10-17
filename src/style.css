@@ -204,6 +204,31 @@ body.drag-over #viewer { outline: 2px solid var(--accent); outline-offset: -6px;
 }
 #status.show { opacity: 1; }
 
+/* ---------- symbol picker ---------- */
+
+.popover {
+  position: fixed;
+  z-index: 10;
+  width: 330px;
+  max-width: calc(100vw - 16px);
+  max-height: 70vh;
+  overflow: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  padding: 0.5rem 0.75rem 0.75rem;
+}
+.popover h3 { font-size: 0.75rem; color: var(--muted); font-weight: 600; margin: 0.5rem 0 0.25rem; }
+.popover .hint { margin: 0.6rem 0 0; }
+.sym-row { display: flex; flex-wrap: wrap; gap: 2px; }
+.sym-row button {
+  width: 30px; height: 30px; padding: 0;
+  border: none; border-radius: 5px;
+  font-size: 16px;
+}
+.sym-row button:hover { background: var(--accent); color: white; }
+
 /* ---------- dialogs (notes_app card style) ---------- */
 
 dialog {

@@ -67,7 +67,7 @@ test('moves an area of original content as a vector copy', async () => {
 test('embeds a Unicode font for text the standard fonts cannot encode, and draws covers', async () => {
   const { readFileSync } = await import('node:fs');
   const loadFont = async () => readFileSync(new URL('../node_modules/dejavu-fonts-ttf/ttf/DejaVuSans.ttf', import.meta.url));
-  const text = { type: 'text', x: 72, y: 72, text: 'Solve x² + y² ≤ 1 for θ ∈ ℝ\n\nAnswer: θ = π/4', size: 14, color: '#000000', font: 'Helvetica', covers: [[70, 70, 300, 20]] };
+  const text = { type: 'text', x: 72, y: 72, text: 'Solve x² + y² ≤ 1 for θ ∈ ℝ, μ = 0.3, λ = 500 nm\n\nAnswer: θ = π/4, Λ, Ω', size: 14, color: '#000000', font: 'Helvetica', covers: [[70, 70, 300, 20]] };
   const out = await buildPdf(new Map(), [
     { srcId: null, srcIndex: 0, origRot: 0, rot: 0, view: [0, 0, 612, 792], annots: [text] },
   ], { loadFont });
