@@ -165,7 +165,7 @@ export async function buildPdf(sources, pages, opts = {}) {
 
   if (opts.title) out.setTitle(opts.title);
   if (opts.author) out.setAuthor(opts.author);
-  out.setProducer('Folio PDF');
-  out.setCreator('Folio PDF');
+  out.setProducer('Simple PDF Editor');
+  out.setCreator('Simple PDF Editor');
   return out.save();
 }

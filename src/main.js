@@ -125,7 +125,7 @@ async function loadPdf(data, name, append) {
   state.pages.push(...pages);
   state.currentPageId ??= pages[0]?.id;
   if (!pageById(state.currentPageId)) state.currentPageId = pages[0]?.id;
-  document.title = `${state.fileName} — Folio PDF`;
+  document.title = `${state.fileName} — Simple PDF Editor`;
   renderAll();
   if (append) toast(`Added ${pdf.numPages} page(s) from ${name}`);
   if (fields.length) toast(`This PDF has ${fields.length} form field(s) — use Forms to fill them.`, 4000);
@@ -974,7 +974,7 @@ wire();
 renderAll();
 
 // Desktop (Electron) integration: open a file passed on the command line / "Open with".
-if (window.folioDesktop) {
-  window.folioDesktop.initialFile().then((f) => f && loadPdf(f.data, f.name, false));
-  window.folioDesktop.onOpenFile((f) => loadPdf(f.data, f.name, false));
+if (window.pdfEditorDesktop) {
+  window.pdfEditorDesktop.initialFile().then((f) => f && loadPdf(f.data, f.name, false));
+  window.pdfEditorDesktop.onOpenFile((f) => loadPdf(f.data, f.name, false));
 }

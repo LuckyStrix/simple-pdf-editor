@@ -1,13 +1,13 @@
 {
-  "name": "folio-pdf",
-  "productName": "Folio PDF",
+  "name": "simple-pdf-editor",
+  "productName": "Simple PDF Editor",
   "version": "1.0.0",
   "description": "A simple, open-source PDF editor for Windows, Linux and the browser.",
   "license": "MIT",
   "author": "LuckyStrix",
   "type": "module",
   "main": "electron/main.cjs",
-  "homepage": "https://github.com/LuckyStrix/folio-pdf",
+  "homepage": "https://github.com/LuckyStrix/simple-pdf-editor",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -27,8 +27,8 @@
     "vite": "6.0.7"
   },
   "build": {
-    "appId": "com.luckystrix.foliopdf",
-    "productName": "Folio PDF",
+    "appId": "com.luckystrix.simplepdfeditor",
+    "productName": "Simple PDF Editor",
     "directories": {
       "output": "release"
     },

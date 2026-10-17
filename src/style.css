@@ -1,115 +1,145 @@
+/* Theme tokens match LuckyStrix/notes_app (client/src/styles/global.css). */
 :root {
-  --bg: #eef0f3;
-  --panel: #ffffff;
-  --text: #1d2330;
+  color-scheme: light dark;
+  --bg: #f7f7f8;
+  --fg: #1a1a1f;
   --muted: #6b7280;
-  --border: #d6dae1;
-  --accent: #2563eb;
-  --accent-text: #ffffff;
-  --hover: #e8edf7;
-  --page-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-  color-scheme: light;
+  --card-bg: #ffffff;
+  --border: #e5e7eb;
+  --accent: #6366f1;
+  --danger: #dc2626;
+  --canvas: #ececef;
+  --page-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #15181e;
-    --panel: #1f232b;
-    --text: #e6e8ec;
-    --muted: #9aa1ad;
-    --border: #343a45;
-    --accent: #4f83f1;
-    --hover: #2a303b;
+    --bg: #17181c;
+    --fg: #ececf1;
+    --muted: #9ca3af;
+    --card-bg: #212227;
+    --border: #33343a;
+    --canvas: #111215;
     --page-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
-    color-scheme: dark;
   }
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Ubuntu, Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
   background: var(--bg);
-  color: var(--text);
+  color: var(--fg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-button, select, input {
-  font: inherit;
-  color: inherit;
-}
+/* ---------- controls ---------- */
+
+button, select, input { font: inherit; color: inherit; }
 button {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  padding: 0.4rem 0.75rem;
   border-radius: 6px;
-  padding: 5px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
   cursor: pointer;
   white-space: nowrap;
 }
-button:hover { background: var(--hover); }
-button.active, button.primary {
+button:hover { background: var(--card-bg); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent-text);
+  color: white;
 }
+button.primary:hover { filter: brightness(1.08); }
+#btn-delete:hover, #pg-del:hover { color: var(--danger); }
+
 select, input[type="number"], input:not([type]) {
-  background: var(--panel);
+  padding: 0.35rem 0.55rem;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 4px 6px;
+  background: var(--bg);
+  color: var(--fg);
 }
-input[type="number"] { width: 58px; }
-.field { display: flex; align-items: center; gap: 3px; color: var(--muted); }
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+input[type="number"] { width: 60px; }
 input[type="color"] {
-  width: 34px; height: 30px; padding: 2px;
-  border: 1px solid var(--border); border-radius: 6px; background: var(--panel);
+  width: 34px; height: 32px; padding: 3px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+  cursor: pointer;
 }
+.field { display: flex; align-items: center; gap: 0.25rem; color: var(--muted); font-size: 0.85rem; }
+
+/* ---------- header ---------- */
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 0.5rem 1.25rem;
   align-items: center;
-  padding: 8px 12px;
-  background: var(--panel);
+  padding: 0.7rem 1.5rem;
   border-bottom: 1px solid var(--border);
 }
-.toolbar .group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
-.brand { font-size: 17px; margin-right: 6px; color: var(--accent); }
-#zoom-label { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+.toolbar .group { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 1.1rem; color: var(--fg); margin-right: 0.5rem; }
+#zoom-label { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+/* Tool buttons use the notes_app view-toggle look. */
+.toolbar .tools button {
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+}
+.toolbar .tools button:hover { color: var(--fg); background: var(--card-bg); }
+.toolbar .tools button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* ---------- layout ---------- */
 
 .layout { flex: 1; display: flex; min-height: 0; }
 
 .sidebar {
-  width: 190px;
+  width: 200px;
   flex: none;
-  background: var(--panel);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 0.85rem 0.75rem 0;
 }
-.page-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
-.page-actions button { padding: 3px 7px; font-size: 13px; }
-.hint { color: var(--muted); font-size: 12px; margin: 0 10px 6px; }
-#thumbs { overflow-y: auto; flex: 1; padding: 4px 10px 20px; }
+.page-actions { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.5rem; }
+.page-actions button {
+  border: none;
+  color: var(--muted);
+  padding: 0.3rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.85rem;
+}
+.page-actions button:hover { background: var(--card-bg); color: var(--fg); }
+.hint { color: var(--muted); font-size: 0.78rem; margin: 0 0 0.6rem; }
+#thumbs { overflow-y: auto; flex: 1; margin: 0 -0.25rem; padding: 0 0.25rem 1.25rem; }
 .thumb {
-  margin: 0 auto 12px;
+  margin: 0 auto 0.6rem;
   text-align: center;
   cursor: pointer;
-  border-radius: 6px;
-  padding: 5px;
+  border-radius: 8px;
+  padding: 0.4rem;
   border: 2px solid transparent;
 }
-.thumb canvas { display: block; margin: 0 auto; box-shadow: var(--page-shadow); background: #fff; }
-.thumb .num { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.thumb:hover { background: var(--card-bg); }
+.thumb canvas { display: block; margin: 0 auto; box-shadow: var(--page-shadow); background: #fff; border-radius: 2px; }
+.thumb .num { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
 .thumb.current { border-color: var(--border); }
-.thumb.selected { border-color: var(--accent); background: var(--hover); }
+.thumb.selected { border-color: var(--accent); background: var(--card-bg); }
+.thumb.selected .num { color: var(--accent); font-weight: 600; }
 .thumb.drop-before { box-shadow: 0 -3px 0 var(--accent); }
 
-#viewer { flex: 1; overflow: auto; position: relative; }
-#pages { padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+#viewer { flex: 1; overflow: auto; position: relative; background: var(--canvas); }
+#pages { padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
 .page {
   position: relative;
   background: #fff;
@@ -117,6 +147,9 @@ input[type="color"] {
   flex: none;
 }
 .page canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ---------- annotations ---------- */
+
 .overlay { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
 body:not(.tool-select) .overlay { cursor: crosshair; }
 body.tool-text .overlay { cursor: text; }
@@ -125,12 +158,7 @@ body:not(.tool-select) .annot { pointer-events: none; }
 .annot { position: absolute; }
 body.tool-select .annot { cursor: move; }
 .annot.selected { outline: 1.5px dashed var(--accent); outline-offset: 2px; }
-.annot.text {
-  white-space: pre;
-  line-height: 1.2;
-  min-width: 4px;
-  outline-offset: 2px;
-}
+.annot.text { white-space: pre; line-height: 1.2; min-width: 4px; outline-offset: 2px; }
 .annot.text.editing { cursor: text; outline: 1.5px solid var(--accent); pointer-events: auto; }
 .annot.text:empty::before { content: "Type here"; opacity: 0.4; }
 .annot.highlight { mix-blend-mode: multiply; opacity: 0.4; }
@@ -146,31 +174,48 @@ body.tool-select .annot { cursor: move; }
   cursor: nwse-resize;
 }
 
-.empty { text-align: center; margin-top: 18vh; color: var(--muted); }
-.empty h1 { color: var(--text); margin-bottom: 4px; }
-body.drag-over #viewer { outline: 3px dashed var(--accent); outline-offset: -8px; }
+/* ---------- empty state, status ---------- */
+
+.empty {
+  max-width: 420px;
+  margin: 16vh auto 0;
+  text-align: center;
+  color: var(--muted);
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 2rem 1.5rem;
+}
+.empty h1 { color: var(--fg); margin: 0 0 0.25rem; font-size: 1.4rem; }
+.empty p { margin: 0 0 1rem; }
+body.drag-over #viewer { outline: 2px solid var(--accent); outline-offset: -6px; }
 
 #status {
-  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-  background: var(--text); color: var(--panel);
-  padding: 8px 16px; border-radius: 8px;
+  position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%);
+  background: var(--card-bg); color: var(--fg);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  padding: 0.6rem 1rem; border-radius: 10px;
   opacity: 0; transition: opacity 0.2s; pointer-events: none;
 }
-#status.show { opacity: 0.92; }
+#status.show { opacity: 1; }
+
+/* ---------- dialogs (notes_app card style) ---------- */
 
 dialog {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--panel);
-  color: var(--text);
+  background: var(--card-bg);
+  color: var(--fg);
+  padding: 1.25rem;
   min-width: 340px;
   max-width: min(680px, 94vw);
 }
 dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
-dialog h2 { margin: 0 0 12px; font-size: 18px; }
-dialog label { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+dialog h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+dialog label { display: flex; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
 dialog label input:not([type="checkbox"]) { flex: 1; }
-dialog .row { display: flex; gap: 8px; margin-top: 14px; }
+dialog .row { display: flex; gap: 0.5rem; margin-top: 1rem; }
 .spacer { flex: 1; }
 #sign-pad {
   display: block; max-width: 100%;
@@ -178,5 +223,5 @@ dialog .row { display: flex; gap: 8px; margin-top: 14px; }
   touch-action: none; cursor: crosshair;
 }
 #form-list { max-height: 60vh; overflow: auto; }
-#form-list h3 { font-size: 14px; margin: 12px 0 4px; color: var(--muted); }
+#form-list h3 { font-size: 0.85rem; margin: 0.75rem 0 0.25rem; color: var(--muted); font-weight: 600; }
 #form-list label span { min-width: 140px; overflow: hidden; text-overflow: ellipsis; }

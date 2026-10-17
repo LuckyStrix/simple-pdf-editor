@@ -2,7 +2,7 @@ const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-// A PDF passed on the command line (e.g. "Open with Folio PDF").
+// A PDF passed on the command line (e.g. "Open with Simple PDF Editor").
 function pdfFromArgv(argv) {
   return argv.slice(1).find((a) => a.toLowerCase().endsWith('.pdf') && fs.existsSync(a));
 }
@@ -14,7 +14,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1400,
     height: 900,
-    title: 'Folio PDF',
+    title: 'Simple PDF Editor',
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   });
