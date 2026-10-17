@@ -34,10 +34,10 @@ Grab the latest build from [Releases](https://github.com/LuckyStrix/simple-pdf-e
 
 | Platform | File |
 | --- | --- |
-| Windows | `Simple PDF Editor Setup x.y.z.exe` (installer) or `Simple PDF Editor x.y.z.exe` (portable) |
-| Linux | `Simple PDF Editor-x.y.z.AppImage` (any distro) or `simple-pdf-editor_x.y.z_amd64.deb` (Debian/Ubuntu) |
+| Windows | `Simple.PDF.Editor.Setup.x.y.z.exe` (installer) or `Simple.PDF.Editor.x.y.z.exe` (portable) |
+| Linux | `Simple.PDF.Editor-x.y.z.AppImage` (any distro) or `simple-pdf-editor_x.y.z_amd64.deb` (Debian/Ubuntu) |
 
-On Linux, make the AppImage executable first: `chmod +x "Simple PDF Editor-"*.AppImage`.
+On Linux, make the AppImage executable first: `chmod +x Simple.PDF.Editor-*.AppImage`.
 
 There is also a web version on GitHub Pages: <https://luckystrix.github.io/simple-pdf-editor/>.
 
